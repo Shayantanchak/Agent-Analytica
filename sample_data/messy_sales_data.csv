@@ -1,0 +1,11 @@
+Transaction ID, Customer Name , Age, Revenue,  Date , Category
+1, John Doe , 35, 150.50, 2023-01-15, Electronics
+2,Jane Smith, 28, 200.00, 2023-01-16, Clothing
+3, Bob Johnson , , 199.99, , Electronics
+4, Alice Brown, 42, 99999.99, 2023-01-18, Home
+4, Alice Brown, 42, 99999.99, 2023-01-18, Home
+6,  Charlie Davis  , 50, -50.00, 2023-01-20, Clothing
+7, Diana Evans, 31, , 2023-01-21, 
+8, Evan Wright, 105, 500.00, 2023/01/22, Electronics
+9, Fiona Green, 22, 120.00, 15-01-2023 , Clothing
+10, George Harris, 45, 300.50, , Home

@@ -1,0 +1,16 @@
+Loan_ID,Applicant_Income,Coapplicant_Income,Loan_Amount,Credit_History,Property_Area,Loan_Status,Default_Risk
+L001,5849,0,146,1,Urban,Approved,Low
+L002,4583,1508,128,1,Rural,Rejected,High
+L003,3000,0,66,1,Urban,Approved,Low
+L004,2583,2358,120,1,Urban,Approved,Low
+L005,6000,0,141,1,Urban,Approved,Low
+L006,5417,4196,267,1,Urban,Approved,Medium
+L007,2333,1516,95,1,Urban,Approved,Low
+L008,3036,2504,158,0,Semiurban,Rejected,High
+L009,4006,1526,168,1,Urban,Approved,Low
+L010,12841,10968,349,1,Semiurban,Rejected,High
+L011,3200,700,70,1,Urban,Approved,Low
+L012,2500,1840,109,1,Urban,Approved,Medium
+L013,3073,8106,200,1,Urban,Approved,Medium
+L014,1853,2840,114,1,Rural,Rejected,High
+L015,1299,1086,17,1,Urban,Approved,Low
