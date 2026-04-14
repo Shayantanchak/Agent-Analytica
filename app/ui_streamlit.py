@@ -15,13 +15,15 @@ from agents.cleaning_agent import CleaningAgent
 from agents.analysis_agent import AnalysisAgent
 from agents.ppt_agent import PPTAgent
 from agents.report_agent import ReportAgent
-from agents.qa_agent import QAAgent
+from agents.orchestrator import Orchestrator
+from qa.qa_engine import QAEngine
+from analysis.anomaly_engine import detect_anomalies
 
 profiler_agent = ProfilerAgent()
 cleaning_agent = CleaningAgent()
 ppt_agent = PPTAgent()
 report_agent = ReportAgent()
-qa_agent = QAAgent()
+qa_agent = QAEngine()
 
 st.set_page_config(page_title="Analytica AI", page_icon="🧠", layout="wide", initial_sidebar_state="expanded")
 
@@ -40,9 +42,7 @@ st.markdown("""
     }
     
     [data-testid="stSidebar"] {
-        background: rgba(15, 23, 42, 0.4) !important;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        background: rgba(15, 23, 42, 0.95) !important;
         border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 
@@ -69,9 +69,7 @@ st.markdown("""
     div.row-widget.stRadio > div > label > div:first-child { display: none; }
 
     .kpi-card {
-        background: rgba(30, 41, 59, 0.5);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: rgba(30, 41, 59, 0.9);
         border-radius: 16px;
         padding: 24px;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
@@ -247,6 +245,27 @@ if uploaded_file is not None:
                 fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={'color': 'white'})
                 st.plotly_chart(fig2, use_container_width=True)
 
+            st.markdown("---")
+            st.markdown("## 🚨 Phase 2: AI Anomaly Detection Engine")
+            if st.button("🔍 Scan Data for Anomalies", type="primary"):
+                with st.spinner("Executing Phase 2 ML Isolation Forest & IQR Bounds..."):
+                    anomaly_output = detect_anomalies(df_to_use)
+                    
+                    st.success("✅ Macro-Pattern Scan Complete")
+                    c_sum1, c_sum2 = st.columns(2)
+                    c_sum1.metric("Total Anomalies Detected", anomaly_output.get('summary', {}).get('total_anomalies', 0))
+                    c_sum2.metric("High Severity Alerts", anomaly_output.get('summary', {}).get('high_severity', 0))
+                    
+                    flags = anomaly_output.get('flags', [])
+                    if flags:
+                        st.markdown("### 🚩 Critical Data Flags")
+                        flag_df = pd.DataFrame(flags)
+                        st.dataframe(flag_df, use_container_width=True)
+                        
+                    charts = anomaly_output.get('charts', {})
+                    if "anomaly_scatter" in charts:
+                        st.plotly_chart(charts["anomaly_scatter"], use_container_width=True)
+
         # ---------------- PAGE 2: AUTO-CLEAN ---------------- #
         elif page == "🧹 Auto-Clean Engine":
             st.title("🧹 Auto-Clean Pipeline")
@@ -287,16 +306,19 @@ if uploaded_file is not None:
             
             col_b1, col_b2, col_b3 = st.columns([1,2,1])
             with col_b2:
-                if st.button("🚀 Execute Neural Analysis", type="primary"):
-                    with st.spinner("Agentic Engine scanning vector dimensions..."):
-                        analyzer = AnalysisAgent(api_key=st.session_state.get('api_key'))
-                        results = analyzer.execute(df_to_use, query=question)
+                if st.button("🚀 Execute Pipeline Orchestrator", type="primary"):
+                    with st.spinner("Orchestrator initializing full agentic graph..."):
+                        orchestrator = Orchestrator(api_key=st.session_state.get('api_key'))
+                        pipeline_res = orchestrator.run_pipeline(df_to_use, query=question)
                         
-                    with st.spinner("QA Validator auditing AI calculations to prevent hallucination..."):
-                        qa_results = qa_agent.execute(results, df_to_use)
-                        results['qa_layer'] = qa_results
+                        st.session_state['pipeline_results'] = pipeline_res
                         
-                    st.session_state['analysis_results'] = results
+                        # Map to existing expected analysis_results structural shape for compatibility
+                        results = pipeline_res['metrics']['analysis']
+                        results['qa_layer'] = pipeline_res['metrics']['qa_layer']
+                        st.session_state['analysis_results'] = results
+                        
+                        qa_results = results['qa_layer']
                     
                     # Log run
                     run_id = str(uuid.uuid4())[:8]
@@ -348,18 +370,73 @@ if uploaded_file is not None:
                 # QA Layer
                 if 'qa_layer' in res:
                     st.markdown("---")
-                    st.markdown("### 🛡️ Phase 5: Zero-Trust Defense Validation")
+                    st.markdown("### 🛡️ Phase 1: Upgraded QA Validation Layer")
                     qa_res = res['qa_layer']
                     
-                    score = qa_res.get('trust_score', 100)
-                    color = "#10b981" if score >= 90 else "#ffa726" if score >= 70 else "#ef4444"
-                    st.markdown(f"**Engine Confidence Validation:** <span style='color:{color}; font-size:24px; font-weight:800; background: rgba(30,41,59,0.5); padding: 5px 15px; border-radius: 8px;'>{score}/100</span>", unsafe_allow_html=True)
+                    status = qa_res.get('overall_status', 'pending').upper()
+                    conf = qa_res.get('confidence', 'low').upper()
+                    color = "#10b981" if conf == "HIGH" else "#ffa726" if conf == "MEDIUM" else "#ef4444"
                     
-                    with st.expander("Explore Immutable Verification Trail", expanded=True):
-                        for log in qa_res.get('validation_logs', []):
-                            st.markdown(log)
-                        for flag in qa_res.get('flags', []):
-                            st.markdown(flag)
+                    st.markdown(f"**Engine Confidence Validation:** <span style='color:{color}; font-size:24px; font-weight:800; background: rgba(30,41,59,0.5); padding: 5px 15px; border-radius: 8px;'>{conf} CONFIDENCE ({status})</span>", unsafe_allow_html=True)
+                    
+                    with st.expander("Explore Phase 1 QA System Audit Logs", expanded=True):
+                        st.markdown("**1. Data & Metric Validations**")
+                        for check in qa_res.get('metric_checks', []):
+                            icon = "✅" if check['status'] == "pass" else "❌"
+                            reason = f" - {check['reason']}" if 'reason' in check else ""
+                            st.markdown(f"{icon} {check['name']}{reason}")
+                            
+                        st.markdown("**2. Narrative Hallucination Checks**")
+                        for check in qa_res.get('narrative_checks', []):
+                            icon = "✅" if check['status'] == "pass" else "❌"
+                            reason = f" - {check['reason']}" if 'reason' in check else ""
+                            st.markdown(f"{icon} {check['name']}{reason}")
+                            
+                        if qa_res.get('contradictions'):
+                            st.markdown("**3. Identified Contradictions**")
+                            for check in qa_res['contradictions']:
+                                st.error(f"⚠️ {check['name']}: {check['reason']}")
+                                
+                        if qa_res.get('warnings'):
+                            st.markdown("**4. System Warnings**")
+                            for warn in qa_res['warnings']:
+                                st.warning(f"⚠️ {warn}")
+
+                if 'pipeline_results' in st.session_state:
+                    pipe = st.session_state['pipeline_results']
+                    st.markdown("---")
+                    st.markdown("### 🔮 Predictive Forecast (Phase 3)")
+                    forecast = pipe['insights']['forecast']
+                    if not forecast.get('error'):
+                        c_f1, c_f2 = st.columns(2)
+                        with c_f1:
+                            st.info(f"Model: {forecast.get('model')}")
+                        with c_f2:
+                            st.info(f"Target: {forecast.get('target')}")
+                        if forecast.get('forecast'):
+                            st.dataframe(pd.DataFrame(forecast['forecast']), use_container_width=True)
+                    else:
+                        st.warning(forecast.get('error'))
+
+                    st.markdown("---")
+                    st.markdown("### 💡 Explainable Lineage (Phase 4)")
+                    narrative = pipe['actionable_intelligence']['explainability']
+                    st.success(narrative.get("summary_narrative", ""))
+                    for trace in narrative.get("evidence_traces", []):
+                        with st.expander(trace['insight']):
+                            st.write(f"**Lineage:** {trace['lineage']}")
+                            st.write(f"**Confidence:** {trace['confidence']}")
+
+                    st.markdown("---")
+                    st.markdown("### 🎯 Executive Recommendations (Phase 5)")
+                    recs = pipe['actionable_intelligence']['recommendations'].get('actionable_steps', [])
+                    for i, rec in enumerate(recs):
+                        if rec['impact'] == 'High':
+                            st.error(f"🔴 Action {i+1}: {rec['action']} (Effort: {rec['effort']})  \n*Reasoning: {rec['reasoning']}*")
+                        elif rec['impact'] == 'Medium':
+                            st.warning(f"🟡 Action {i+1}: {rec['action']} (Effort: {rec['effort']})  \n*Reasoning: {rec['reasoning']}*")
+                        else:
+                            st.info(f"🟢 Action {i+1}: {rec['action']} (Effort: {rec['effort']})  \n*Reasoning: {rec['reasoning']}*")
 
         # ---------------- PAGE 4: EXPORT CENTER ---------------- #
         elif page == "📤 Export Center (PPT/DOCX)":
@@ -391,6 +468,17 @@ if uploaded_file is not None:
                             st.success("✅ Compiled!")
                             st.download_button("⬇️ Download Deck", pptx_bytes, "Analytica_Board_Deck.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
                     st.markdown("</div>", unsafe_allow_html=True)
+
+            if st.session_state.get('pipeline_results'):
+                from connectors.excel_connector import ExcelConnector
+                st.markdown("---")
+                st.markdown("### 📊 Excel Native Export (Phase 7)")
+                if st.button("🔨 Package Comprehensive Excel Workbook", type="secondary"):
+                    with st.spinner("Generating native .xlsx..."):
+                        connector = ExcelConnector()
+                        res = connector.export_pipeline_results("Analytica_Export", st.session_state['pipeline_results'])
+                        with open(res['filepath'], "rb") as f:
+                            st.download_button("⬇️ Download Excel", f.read(), "Analytica_Export.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
         # ---------------- PAGE 5: AUDIT TRAIL ---------------- #
         elif page == "🧾 Immutable Audit Trail":

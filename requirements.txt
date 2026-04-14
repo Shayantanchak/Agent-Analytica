@@ -10,3 +10,5 @@ WeasyPrint
 scikit-learn
 statsmodels
 scipy
+openai
+requests
