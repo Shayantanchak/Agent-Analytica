@@ -142,7 +142,7 @@ st.markdown("""
 
 # ---------------- NAVIGATION & SIDEBAR ---------------- #
 with st.sidebar:
-    st.image(r"C:\Users\schak\.gemini\antigravity\brain\ffcc1c4f-6fd0-4337-8dad-70d6bdfcd306\analytica_logo_1774471982398.png", use_container_width=True)
+    st.image(r"app/assets/logo.png", use_container_width=True)
     st.markdown("<h1 style='text-align: center; font-size: 36px; background: linear-gradient(90deg, #60A5FA, #A78BFA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: -15px; margin-bottom: 0;'>📊 Analytica</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #94A3B8; margin-bottom: 30px;'>Agentic Intelligence Engine</p>", unsafe_allow_html=True)
     
